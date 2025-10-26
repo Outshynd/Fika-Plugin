@@ -161,6 +161,20 @@ public class FikaCommands
         coopGame.Extract(localPlayer, null);
     }
 
+    [ConsoleCommand("debugCamera", "", null, "Spawns or destroy the camera debugger")]
+    public static void DebugCamera()
+    {
+        if (!CheckForGame())
+        {
+            return;
+        }
+
+        bool exist = WorldToScreen.ToggleDebugger();
+        string message = exist ? "Removed debugger" : "Added debugger";
+        ConsoleScreen.Log(message);
+    }
+
+
     [ConsoleCommand("despawnAllAi", "", null, "Despawns all AI bots", [])]
     public static void DespawnAllAI()
     {

@@ -8,6 +8,24 @@ namespace Fika.Core.Main.Utils;
 /// </summary>
 public static class WorldToScreen
 {
+
+#if DEBUG
+    private static WorldToScreenDebugger debugger;
+
+    public static bool ToggleDebugger()
+    {
+        if (debugger != null)
+        {
+            GameObject.Destroy(debugger);
+            debugger = null;
+            return true;
+        }
+
+        debugger = CameraClass.Instance.Camera.gameObject.AddComponent<WorldToScreenDebugger>();
+        return false;
+    }
+#endif
+
     /// <summary>
     /// Projects a world position to a canvas position
     /// </summary>
@@ -50,6 +68,16 @@ public static class WorldToScreen
         // Convert normalized viewport (0-1) to canvas local position
         canvasPosition = new Vector2((viewportPoint.x - 0.5f) * canvasSize.x * scaleFactor,
             (viewportPoint.y - 0.5f) * canvasSize.y * scaleFactor);
+
+#if DEBUG
+        debugger?.UpdateData(viewportPoint,
+        camClass.Camera.WorldToViewportPoint(worldPosition),
+        canvasPosition,
+        canvasSize,
+        Screen.width,
+        camClass.SSAA.GetCurrentSSRatio(),
+        scaleFactor);
+#endif
 
         return true;
     }
@@ -130,4 +158,74 @@ public static class WorldToScreen
             Vector3.forward);
         return new Vector3(0f, 0f, angle);
     }
+
+
+#if DEBUG
+    internal class WorldToScreenDebugger : MonoBehaviour
+    {
+        private Vector2 opticCameraPoint;
+        private Vector2 worldCameraPoint;
+        private Vector2 canvasPosition;
+        private Vector2 canvasSize;
+
+        private int screenWidth;
+        private float ssaaRatio;
+        private float scaleFactor;
+
+        private Rect windowRect;
+
+        protected void Awake()
+        {
+            opticCameraPoint = Vector2.zero;
+            worldCameraPoint = Vector2.zero;
+            canvasPosition = Vector2.zero;
+            canvasSize = Vector2.zero;
+            screenWidth = 0;
+            ssaaRatio = 1f;
+            scaleFactor = 1f;
+
+            windowRect = new(20, 20, 300, 10);
+        }
+
+        public void UpdateData(Vector2 opticCamPoint, Vector2 worldCamPoint, Vector2 canvasPosition, Vector2 canvasSize, int screenWidth, float ssaaRatio, float scaleFactor)
+        {
+            this.opticCameraPoint = opticCamPoint;
+            this.worldCameraPoint = worldCamPoint;
+            this.canvasPosition = canvasPosition;
+            this.canvasSize = canvasSize;
+            this.screenWidth = screenWidth;
+            this.ssaaRatio = ssaaRatio;
+            this.scaleFactor = scaleFactor;
+        }
+
+        protected void OnGUI()
+        {
+            GUILayout.BeginArea(windowRect);
+            GUILayout.BeginVertical();
+
+            windowRect = GUILayout.Window(1, windowRect, DrawWindow, "WTS Debugger");
+
+            GUILayout.EndVertical();
+            GUILayout.EndArea();
+        }
+
+        private void DrawWindow(int windowId)
+        {
+            GUILayout.Label($"OpticCamera.X: {this.opticCameraPoint.x:F4}");
+            GUILayout.Label($"OpticCamera.Y: {this.opticCameraPoint.y:F4}");
+
+            GUILayout.Label($"WorldCamera.X: {this.worldCameraPoint.x:F4}");
+            GUILayout.Label($"WorldCamera.Y: {this.worldCameraPoint.y:F4}");
+
+            GUILayout.Label($"Canvas Position: {this.canvasPosition.x:F4}, {this.canvasPosition.y:F4}");
+
+            GUILayout.Label($"Canvas Size: {this.canvasSize.x:F4}, {this.canvasSize.y:F4}");
+            GUILayout.Label($"Screen Width: {this.screenWidth}");
+            GUILayout.Label($"SSAA Ratio: {this.ssaaRatio:F4}");
+            GUILayout.Label($"Scale Factor: {this.scaleFactor:F4}");
+
+            GUI.DragWindow();
+        }
+    }
+#endif
 }
