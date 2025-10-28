@@ -22,7 +22,8 @@ public static class WorldToScreen
             return false;
         }
 
-        var projCam = camClass.Camera;
+        //var projCam = camClass.Camera;
+        Vector3 viewportPoint = Vector3.zero;
 
         Vector2 canvasSize = canvasRect.sizeDelta;
         float scaleFactor = 1f;
@@ -33,13 +34,24 @@ public static class WorldToScreen
             var opticCam = camClass.OpticCameraManager.Camera;
             if (opticCam != null)
             {
-                projCam = opticCam;
                 canvasSize = opticCam.pixelRect.max;
                 scaleFactor = canvasRect.sizeDelta.x / Screen.width;
+                viewportPoint = opticCam.WorldToViewportPoint(worldPosition);
+
+                //get optic center screen position & offset
+                var opticPosition = camClass.Camera.WorldToViewportPoint(
+                    camClass.OpticCameraManager.CurrentOpticSight.LensRenderer.transform.position);
+
+                var opticOffset = opticPosition - new Vector3(0.5f, 0.5f, 0f);
+
+                viewportPoint += (opticOffset / scaleFactor);
             }
         }
 
-        var viewportPoint = projCam.WorldToViewportPoint(worldPosition);
+        if (viewportPoint == Vector3.zero)
+        {
+            viewportPoint = camClass.Camera.WorldToViewportPoint(worldPosition);
+        }
 
         // Check if point is in front of camera
         if (viewportPoint.z <= 0f && !skipBehindCheck)
